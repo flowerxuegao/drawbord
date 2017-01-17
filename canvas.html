@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="js/jquery-3.1.0.js"></script>
+    <script src="js/shape1.js"></script>
+</head>
+<style>
+    body,ul,li{
+        padding: 0;margin: 0;list-style: none;
+    }
+    body{
+        background:#E9F6C0;
+    }
+    .box{
+        width: 800px;height: 510px;border: 5px solid #E7BDBA;
+        position: fixed;left: 0;top:0;right:0;bottom:0;margin: auto;
+    }
+    .menu{
+        width: 100%;height: 40px;background: #FAB7D6;
+    }
+    .menu .menu-list{
+        height:30px;
+        background:#FFBCC0;
+        opacity:0.8;
+        margin-top:5px;
+        margin-left:5px;
+        border-radius:15px;
+        float: left;padding: 0 10px;line-height: 30px;text-align: center;cursor: pointer;
+        transition:color .5s ease;width:11%;
+    }
+    .menu .menu-list:hover{
+        color:#fff;
+        font-weight:bold;
+    }
+    .main{
+        width: 100%;height: 470px;
+    }
+    .main .aside-menu{
+        width: 20%;height: 100%;overflow: auto;
+        border-right: 1px solid #666;
+        float: left;
+        box-sizing: border-box;
+    }
+    .main .canvas-box{
+        float: left;width: 80%;height:100%;position: relative;
+        box-sizing: border-box;
+    }
+    .main .canvas-box canvas{
+        background: #fff;
+    }
+    .main .canvas-box .copy{
+        position: absolute;left: 0;top:0;z-index: 999;width: 100%;height: 100%;
+    }
+    .xp{
+        width: 10px;
+        height: 10px;
+        border:1px solid #000;
+        position: absolute;
+        left: 0;
+        top:0;
+        display: none;
+    }
+    .aside-menu{
+        text-align: center;
+        cursor: pointer;line-height: 30px;
+    }
+    .aside-menu-list:not(:first-child){
+    display: none;
+    }
+    .selectarea{
+        position:absolute;
+        left:0;top:0;
+        border:1px dotted #000;
+        display:none;
+    }
+    /*.time{*/
+        /*width: 100%;position: absolute;left: 0;bottom:0;*/
+    /*}*/
+</style>
+<script>
+    window.onload=function(){
+        var canvasbox=document.querySelector(".canvas-box");
+        var canvasboxW=canvasbox.offsetWidth;
+        var canvasboxH=canvasbox.offsetHeight;
+        var canvas=document.querySelector("canvas");
+        var copy=document.querySelector(".copy");
+        var xpc=document.querySelector(".xpc");
+        var cobj=canvas.getContext("2d");
+        var obj=new shape(canvas,copy,cobj);
+        canvas.width=canvasboxW;
+        canvas.height=canvasboxH;
+        $(".menu-list").click(function(){
+            var index=$(".menu-list").index(this);
+            $(".aside-menu-list").hide().eq(index).slideToggle(100);
+            $(".xp").css("display","none");
+            obj.isshowxp=false;
+            $(".selectarea").css("display","none");
+        })
+//        画图
+        $(".aside-menu-list:eq(1) li").click(function(){
+            var fn=$(this).attr("data-role");
+            if(fn=="bian"){
+                obj.bianNum=$(".aside-menu-list:eq(1) li:eq(3) input").val();
+            }
+            if(fn=="djx"){
+                obj.jiaoNum=$(".aside-menu-list:eq(1) li:eq(4) input").val();
+            }
+            if(fn!=="pen"){
+                obj.type=fn;
+                obj.draw();
+            }else{
+                obj.pen();
+            }
+        })
+//        画图方式
+        $(".aside-menu-list:eq(2) li").click(function(){
+            var fn=$(this).attr("data-role");
+            obj.style=fn;
+            obj.draw();
+        })
+//        边数
+//        $(".aside-menu-list:eq(3) input").change(function(){
+//            obj[$(this).attr("data-role")]=$(this).val();
+//            obj.draw();
+//        })
+//        画图颜色
+        $(".aside-menu-list:eq(3) input").change(function(){
+            obj[$(this).attr("data-role")]=$(this).val();
+            obj.draw();
+        })
+//        线条宽度
+        $(".aside-menu-list:eq(4) li").click(function(){
+            var fn=$(this).attr("data-role");
+            if(fn!=="null"){
+                obj.lineWidth=fn;
+                obj.draw();
+            }
+        })
+//        自定义设置线条宽度
+        $(".aside-menu-list:eq(4) li>input").change(function(){
+            obj.lineWidth=$(this).val();
+            obj.draw();
+        })
+        $(".aside-menu-list:eq(0) li").click(function(){
+            var index=$(".aside-menu-list:eq(0) li").index(this);
+            if(index==2){
+                var url=canvas.toDataURL();
+                var newurl=url.replace("image/png","stream/octet")
+                location.href=newurl;
+            }else if(index==1){
+                if(obj.history.length==0){
+                    //no
+                    cobj.clearRect(0,0,canvas.width,canvas.height);
+                    setTimeout(function(){
+                        alert("不能返回");
+                    },10)
+                }else{
+                    if (obj.isback) {
+                        if (obj.history.length == 1) {
+                            obj.history.pop();
+                            cobj.clearRect(0, 0, canvas.width, canvas.height);
+                        } else {
+                            obj.history.pop();
+                            cobj.putImageData(obj.history[obj.history.length-1], 0, 0);
+                        }
+                    } else {
+                        cobj.putImageData(obj.history.pop(), 0, 0);
+                    }
+                    obj.isback = false;
+                }
+            }else if(index==0){
+                if(obj.history.length>0){
+                    var yes=confirm("是否保存");
+                    if(yes){
+                        var url=canvas.toDataURL();
+                        var newurl=url.replace("image/png","stream/octet")
+                        location.href=newurl;
+                    }
+                }
+                cobj.clearRect(0,0,canvas.width,canvas.height);
+                obj.history=[];
+            }
+        })
+        $(".menu-list:eq(5)").click(function(){
+            var xpobj=$(".xp");
+            obj.xp(xpobj);
+            obj.isshowxp=true;
+            $(".aside-menu-list:last-child input").val=obj.xpsize;
+        })
+        $(".aside-menu-list:eq(5) input").change(function(){
+            obj.xpsize=$(this).val();
+            $(".xp").css({
+                width:$(this).val()+"px",
+                height:$(this).val()+"px"
+            })
+        })
+        $(".menu-list:last-child").click(function(){
+            obj.select($(".selectarea"));
+//            $(".menu-list:last-child").css({color:"#000"}).css("text-shadow","0 0 3px #000");
+            selectarea.style.border="1px dotted #000";
+        })
+
+        var span=document.getElementsByTagName("span");
+        var time=new Date();
+        var year=time.getFullYear();
+        var month=time.getMonth();
+        var day=time.getDate();
+        var hours=time.getHours();
+        var m=time.getMinutes();
+        var s=time.getSeconds();
+        span[0].innerHTML=year;
+        span[1].innerHTML=month+1;
+        span[2].innerHTML=day;
+        span[3].innerHTML=hours;
+        span[4].innerHTML=m;
+        span[5].innerHTML=s;
+
+
+        setInterval(function(){
+            var time=new Date();
+            var year=time.getFullYear();
+            var month=time.getMonth();
+            var day=time.getDate();
+            var hours=time.getHours();
+            var m=time.getMinutes();
+            var s=time.getSeconds();
+            span[0].innerHTML=year;
+            span[1].innerHTML=month+1;
+            span[2].innerHTML=day;
+            span[3].innerHTML=hours;
+            span[4].innerHTML=m;
+            span[5].innerHTML=s;
+        },1000)
+    }
+</script>
+<body>
+<div class="box">
+    <div class="message"></div>
+    <ul class="menu">
+        <li class="menu-list">文件</li>
+        <li class="menu-list">画图</li>
+        <li class="menu-list">画图方式</li>
+        <!--<li class="menu-list">边数</li>-->
+        <li class="menu-list">颜色</li>
+        <li class="menu-list">线条宽度</li>
+        <li class="menu-list">擦除</li>
+        <li class="menu-list">选择</li>
+    </ul>
+    <div class="main">
+        <aside class="aside-menu">
+            <ul class="aside-menu-list">
+                <li>新建</li>
+                <li>返回</li>
+                <li>保存</li>
+            </ul>
+            <ul class="aside-menu-list">
+                <li data-role="line">画线</li>
+                <li data-role="rect">矩形</li>
+                <li data-role="arc">圆</li>
+                <li data-role="bian">多边形 <input type="number"style="width: 80px"placeholder="自定义边数"></li>
+                <li data-role="djx">多角形 <input type="number"style="width: 80px"placeholder="自定义角数"></li>
+                <li data-role="pen">铅笔工具</li>
+            </ul>
+            <ul class="aside-menu-list">
+                <li data-role="stroke">描边</li>
+                <li data-role="fill">填充</li>
+            </ul>
+            <ul class="aside-menu-list">
+                背景:<input type="color"data-role="fillStyle"><br>
+                边框:<input type="color"data-role="strokeStyle">
+            </ul>
+            <ul class="aside-menu-list">
+                <li data-role="1">细</li>
+                <li data-role="3">中</li>
+                <li data-role="5">粗</li>
+                <li data-role="null"><input type="number"placeholder="自定义"style="width: 70px"></li>
+            </ul>
+            <ul class="aside-menu-list">
+                橡皮大小:<input type="number"placeholder="橡皮大小"style="width: 70px">
+            </ul>
+           
+        </aside>
+        <div class="canvas-box">
+            <canvas>您的浏览器不支持canvas，请升级</canvas>
+            <div class="copy">
+            </div>
+            <div class="xp"></div>
+            <div class="selectarea"></div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
